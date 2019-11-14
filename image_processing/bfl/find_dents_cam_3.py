@@ -6,8 +6,8 @@ import os
 
 
 kernel_list = []
-debug = True
-# debug = False
+# debug = True
+debug = False
 stack_img = []
 
 def showimage(image_name,image):
@@ -31,7 +31,7 @@ def custom_soften(image):
 
 	kernel = np.array((
 				[1,1,1],
-				[1,2,1],
+				[1,3,1],
 				[1,1,1]),dtype = "int")
 	kernel = kernel/9
 	blur = cv2.filter2D(image,cv2.CV_8UC3,kernel)
@@ -39,19 +39,19 @@ def custom_soften(image):
 	if debug:
 		showimage("custom soften",blur)
 
-	kernel = np.ones((7,7),np.uint8)
-	erosion = cv2.erode(blur,kernel,iterations = 2)
+	# kernel = np.ones((7,7),np.uint8)
+	# erosion = cv2.erode(blur,kernel,iterations = 2)
 
-	if debug:
-		showimage("erosion",erosion)
+	# if debug:
+	# 	showimage("erosion",erosion)
 
-	return erosion
+	return blur
 
 
 def test_for_lap(image):
 	global stack_img
 
-	image = cv2.medianBlur(image,5)
+	image = cv2.medianBlur(image,7)
 	# cv2.imshow("blur",image)
 	# cv2.waitKey(0)
 	# cv2.destroyAllWindows()
@@ -60,7 +60,7 @@ def test_for_lap(image):
 	# 	showimage("blur",blur)
 
 	sobel = convolve_sobel(img=image,
-                   threshold=30,
+                   threshold=40,
                    sobel_kernel_left_right=True,
                    sobel_kernel_right_left=True,
                    sobel_kernel_top_bottom=False,
@@ -99,12 +99,12 @@ def dynamic_crop(g_bk):
 
 	g9 = g_bk.copy()
 
-	g9 = cv2.medianBlur(g9,59)
+	g9 = cv2.medianBlur(g9,35)
 
 	if debug:
 		showimage("blur",g9)
 
-	_,g9 = cv2.threshold(g9,10,255,cv2.THRESH_BINARY)
+	_,g9 = cv2.threshold(g9,20,255,cv2.THRESH_BINARY)
 
 	if debug:
 		showimage("thresh",g9)
@@ -146,7 +146,7 @@ def dynamic_crop(g_bk):
 		# print("width:",width)
 
 	# g10 = bef_gray[0:225, first_pix_loc1_x:]
-	g10 = g_bk[y1+50:y2, first_pix_loc1_x+30:width-100]
+	g10 = g_bk[y1+50+50:y2-20-50, first_pix_loc1_x:width]
 
 	# stack_img = np.empty_like(g10)
 
@@ -198,6 +198,7 @@ def continuous_gabor(image):
 	print("white_pixels: ",white_pixel_value)
 
 
+	# stack_img = custom_soften(stack_img)
 
 	if white_pixel_value>50 and debug == True:
 		showimage("final stack",stack_img)
@@ -216,13 +217,14 @@ def continuous_gabor(image):
 
 if __name__ == "__main__":
 
-	time_taken = time.time()
+	
 	# path = "rpi-7_images/big_shaft_15/"
 	# path = "analysis/lap_test/"
 	# path = "analysis/ok_small_shaft/"
 	# path = "analysis/gripper_test_new/"
 	# path = "analysis/failure_test/"
-	path = "analysis/dents-cam-3/"
+	# path = "analysis/dent-cam-3/"
+	# path = "analysis/dent-cam-3/failure_test/"
 
 	images=[]
 
@@ -230,6 +232,8 @@ if __name__ == "__main__":
 		for files in f:
 			if ".jpg" in files:
 				images.append(os.path.join(r,files))
+				# print("image name: ",files)
+
 
 	for img in images:
 
@@ -240,30 +244,31 @@ if __name__ == "__main__":
 		# image_name = "analysis/lap_test/Webcam1579.jpg"	
 		# image_name = "analysis/lap_test/Webcam1621.jpg"	
 		# image_name = "analysis/lap_test/Webcam1659.jpg"	
-		# image_name = "analysis/lap_test/Webcam1607.jpg"	
+		# image_name = "analysis/dent-cam-3/Webcam.jpg"
+
+		time_taken = time.time()	
 
 		original_image = cv2.imread(image_name,0)
 
 		print("*******************************"+str(image_name)+"********************************")
 
-		# showimage(img,original_image)
-
-		# clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(5,5))
-		# clahe = clahe.apply(original_image)
-
-		# if debug:
-		# 	showimage("clahe",clahe)
-
-		# clahe = cv2.equalizeHist(clahe)
-
-		# if debug:
-		# 	showimage("hist",clahe)
 
 		crop_image = dynamic_crop(original_image)
 
 		if debug:
-			showimage('clahe',crop_image)
+			showimage('dynamic crop',crop_image)
 
+
+		# hist = cv2.equalizeHist(crop_image)
+
+		# if debug:
+		# 	showimage('hist',hist)
+
+		pos = np.where(crop_image>170)
+		crop_image[pos] = 170
+
+		if debug:
+			showimage('manip',crop_image)
 
 		# clahe = cv2.createCLAHE(clipLimit=5.0, tileGridSize=(5,5))
 		# clahe = clahe.apply(crop_image)
@@ -280,4 +285,4 @@ if __name__ == "__main__":
 
 		print("time taken: ",time_taken)	
 
-		break	
+		# break	
